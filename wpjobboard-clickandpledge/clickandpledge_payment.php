@@ -2,9 +2,9 @@
 /*
 Plugin Name: Click & Pledge WPJobBoard
 Plugin URI: http://manual.clickandpledge.com/
-Description: This plugin is to integrate WP Job Board Click & Pledge Payment system. Please contact Click & Pledge for assistance, support@clickpledge.com
+Description: This plugin is to integrate WPJobBoard Click & Pledge Payment system. Please contact Click & Pledge for assistance, support@clickpledge.com
 Author: Kamran Razvan
-Version: 1.0.0 (Beta)
+Version: 1.0.0
 Author URI: http://manual.clickandpledge.com/
 */
 

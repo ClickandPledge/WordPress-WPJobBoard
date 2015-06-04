@@ -1,8 +1,29 @@
 jQuery(document).ready(function($) {
 	$('#payment-form').submit(function(event) {
         $("#payment-form").validate();
-		if( $('#payment-form').valid() ){			
-			//$form.find('button').prop('disabled', true);
+		var $form = $('#payment-form');		
+			if( $('#payment-form').valid() ){			
+				if(!$('#clickandpledge_indefinite').is(':checked')) {
+				if($('#clickandpledge_RecurringMethod').val() == 'Subscription') {
+					if($('#clickandpledge_maxrecurrings_Subscription').val() != '') {
+						if(parseInt($('#clickandpledge_Installment').val()) > parseInt($('#clickandpledge_maxrecurrings_Subscription').val())) {
+							alert('Please enter a value between 2-'+parseInt($('#clickandpledge_maxrecurrings_Subscription').val())+' Only');
+							$('#clickandpledge_Installment').focus();
+							return false;
+						}
+					}
+				}
+				if($('#clickandpledge_RecurringMethod').val() == 'Installment') {
+					if($('#clickandpledge_maxrecurrings_Installment').val() != '') {
+						if(parseInt($('#clickandpledge_Installment').val()) > parseInt($('#clickandpledge_maxrecurrings_Installment').val())) {
+							alert('Please enter a value between 2-'+parseInt($('#clickandpledge_maxrecurrings_Installment').val())+' Only');
+							$('#clickandpledge_Installment').focus();
+							return false;
+						}
+					}
+				}
+			}
+			$form.find('button').prop('disabled', true);
 			clickandpledgeTransaction();
 		}		
         return false;
@@ -56,11 +77,13 @@ jQuery(document).ready(function($) {
 				clickandpledge_TermsCondition:$('#clickandpledge_TermsCondition').val(),
 				clickandpledge_email_customer:$('#clickandpledge_email_customer').val(),
 				
-				clickandpledge_isRecurring:$('#clickandpledge_isRecurring').val(),
+				clickandpledge_isRecurring:$('#clickandpledge_isRecurring').is(':checked'),
 				clickandpledge_RecurringMethod:$('#clickandpledge_RecurringMethod').val(),
-				clickandpledge_indefinite:$('#clickandpledge_indefinite').val(),
+				clickandpledge_indefinite:$('#clickandpledge_indefinite').is(':checked'),
 				clickandpledge_Periodicity:$('#clickandpledge_Periodicity').val(),
-				clickandpledge_Installment:$('#clickandpledge_Installment').val()
+				clickandpledge_Installment:$('#clickandpledge_Installment').val(),
+				clickandpledge_listing_id:$('#clickandpledge_listing_id').val(),
+				clickandpledge_coupon_code:$('#clickandpledge_coupon_code').val()
             };
 		var request = $.ajax({
                 url: ajaxurl,
@@ -147,41 +170,75 @@ jQuery(document).ready(function($) {
 				}
 				if(jQuery('#clickandpledge_RecurringMethod').val() == 'Installment') {
 					if(jQuery('#clickandpledge_indefinite_div').length)
+							jQuery('#clickandpledge_indefinite').attr('checked', false);
 							jQuery('#clickandpledge_indefinite_div').hide();
 				}
+				isInstallments();
 			}			
 	}
 	
 	if(jQuery('#clickandpledge_indefinite').length > 0) {
 		jQuery('#clickandpledge_indefinite').click(function(){
-			if(jQuery('#clickandpledge_indefinite').is(':checked')) {
+			isInstallments();
+		});
+	}
+	
+	function isInstallments() {
+		if(jQuery('#clickandpledge_indefinite').is(':checked')) {
 				jQuery('#clickandpledge_Installment_div').hide();
 			} else {
 				jQuery('#clickandpledge_Installment_div').show();
 			}
+	}
+	
+	//eCheck Recurring Display
+	if(jQuery('#clickandpledge_isRecurring_eCheck').length > 0) {
+		recurring_display_eCheck('first');
+		
+		jQuery('#clickandpledge_isRecurring_eCheck').click(function(){
+			recurring_display_eCheck('no');
 		});
 	}
-	function isRecurring_echeck() {
-		if(jQuery('#clickandpledge_isRecurring').is(':checked')) {					
-				jQuery('#clickandpledge_Periodicity_p_echeck').show();
-				jQuery('#clickandpledge_RecurringMethod_p_echeck').show();
-				if(jQuery('#clickandpledge_indefinite_echeck').length) {
-					if(jQuery('#clickandpledge_RecurringMethod_echeck').val() == 'Installment') {
-					jQuery('#clickandpledge_indefinite_echeck').attr('checked', false);
-					jQuery('#clickandpledge_indefinite_p_echeck').hide();
-					jQuery('#clickandpledge_Installment_req_echeck').show();
-					} else {
-						jQuery('#clickandpledge_indefinite_p_echeck').show();
-						jQuery('#clickandpledge_Installment_req_echeck').show();
-					}
-					//jQuery('#clickandpledge_indefinite_p').show();
-				}
-			} else {
-				jQuery('#clickandpledge_Periodicity_p_echeck').hide();
-				jQuery('#clickandpledge_RecurringMethod_p_echeck').hide();
-				if(jQuery('#clickandpledge_indefinite_echeck').length)
-					jQuery('#clickandpledge_indefinite_echeck').attr('checked', false);
-					jQuery('#clickandpledge_indefinite_p_echeck').hide();
+	function recurring_display_eCheck(cas) {	
+		if(jQuery('#clickandpledge_isRecurring_eCheck').is(':checked')) {
+			jQuery('#clickandpledge_Periodicity_div_eCheck').show();
+			jQuery('#clickandpledge_RecurringMethod_div_eCheck').show();
+			if(jQuery('#clickandpledge_indefinite_div_eCheck').length)
+					jQuery('#clickandpledge_indefinite_div_eCheck').show();
+		} else {
+			jQuery('#clickandpledge_Periodicity_div_eCheck').hide();
+			jQuery('#clickandpledge_RecurringMethod_div_eCheck').hide();
+			if(jQuery('#clickandpledge_indefinite_div_eCheck').length) {
+					jQuery('#clickandpledge_indefinite_div_eCheck').hide();
 			}
-	}	
+		}
+		if(cas == 'first')
+		isIndefinite_eCheck(cas);
+	}
+	if(jQuery('#clickandpledge_RecurringMethod_eCheck').length > 0) {
+		jQuery('#clickandpledge_RecurringMethod_eCheck').change(function(){
+			isIndefinite_eCheck();
+		});
+	}
+	function isIndefinite_eCheck(cas) {		
+			if(cas != 'first') {
+				if(jQuery('#clickandpledge_RecurringMethod_eCheck').val() == 'Subscription') {
+					if(jQuery('#clickandpledge_indefinite_div_eCheck').length)
+							jQuery('#clickandpledge_indefinite_div_eCheck').show();
+				}
+				if(jQuery('#clickandpledge_RecurringMethod_eCheck').val() == 'Installment') {
+					if(jQuery('#clickandpledge_indefinite_div_eCheck').length)
+							jQuery('#clickandpledge_indefinite_div_eCheck').hide();
+				}
+			}			
+	}
+	if(jQuery('#clickandpledge_indefinite_eCheck').length > 0) {
+		jQuery('#clickandpledge_indefinite_eCheck').click(function(){
+			if(jQuery('#clickandpledge_indefinite_eCheck').is(':checked')) {
+				jQuery('#clickandpledge_Installment_div_eCheck').hide();
+			} else {
+				jQuery('#clickandpledge_Installment_div_eCheck').show();
+			}
+		});
+	}
 });

@@ -337,7 +337,7 @@ jQuery(document).ready(function($) {
 		}
 		
 		//EUR
-		if(jQuery('#wpjobboard_clickandpledge_usdaccount-EUR').is(':checked')) {
+		if(jQuery('#wpjobboard_clickandpledge_euraccount-EUR').is(':checked')) {
 			if(jQuery('#wpjobboard_clickandpledge_EUR_AccountID').val() == '')
 			{
 				alert('Please enter EUR Account ID');
@@ -365,7 +365,7 @@ jQuery(document).ready(function($) {
 		}
 		
 		//CAD
-		if(jQuery('#wpjobboard_clickandpledge_usdaccount-CAD').is(':checked')) {
+		if(jQuery('#wpjobboard_clickandpledge_cadaccount-CAD').is(':checked')) {
 			if(jQuery('#wpjobboard_clickandpledge_CAD_AccountID').val() == '')
 			{
 				alert('Please enter CAD Account ID');
@@ -393,7 +393,7 @@ jQuery(document).ready(function($) {
 		}
 
 		//GBP
-		if(jQuery('#wpjobboard_clickandpledge_usdaccount-GBP').is(':checked')) {
+		if(jQuery('#wpjobboard_clickandpledge_gbpaccount-GBP').is(':checked')) {
 			if(jQuery('#wpjobboard_clickandpledge_GBP_AccountID').val() == '')
 			{
 				alert('Please enter GBP Account ID');
@@ -421,7 +421,7 @@ jQuery(document).ready(function($) {
 		}
 
 		//HKD
-		if(jQuery('#wpjobboard_clickandpledge_usdaccount-HKD').is(':checked')) {
+		if(jQuery('#wpjobboard_clickandpledge_hkdaccount-HKD').is(':checked')) {
 			if(jQuery('#wpjobboard_clickandpledge_HKD_AccountID').val() == '')
 			{
 				alert('Please enter HKD Account ID');

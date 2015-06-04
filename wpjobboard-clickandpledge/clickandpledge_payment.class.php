@@ -121,7 +121,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$applicationname=$dom->createElement('Name','CnP_WPJobBoard_WordPress');
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','1.0.0.20150525');
+		$applicationversion=$dom->createElement('Version','1.0.0.20150604');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -138,8 +138,8 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$ipaddress=$operation->appendChild($ipaddress);
 		}
 		
-		//$httpreferrer=$dom->createElement('UrlReferrer',$_SERVER['HTTP_REFERER']);
-		//$httpreferrer=$operation->appendChild($httpreferrer);
+		$httpreferrer=$dom->createElement('UrlReferrer',htmlentities($_SERVER['HTTP_REFERER']));
+		$httpreferrer=$operation->appendChild($httpreferrer);
 		
 		$authentication=$dom->createElement('Authentication','');
 		$authentication=$request->appendChild($authentication);
@@ -153,7 +153,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$order=$dom->createElement('Order','');
 		$order=$request->appendChild($order);
 
-		if( $params['clickandpledge_OrderMode'] == 'yes' ){
+		if( $params['clickandpledge_OrderMode'] == 'test' ){
 		$orderMode = 'Test';
 		}else{		
 		$orderMode = 'Production';
@@ -166,10 +166,78 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		//Object Type:1-wpjb_job, 2 - wpjb_resume, 3 - wpjb_membership
 		$orderdetails = array();
 		$orderdetails['BillingEmail'] = $paymentdetails->email;
+		$orderdetails['CustomFields'] = array();
+		$order_custom_fields = $wpdb->get_results( 'SELECT * FROM '.$wpdb->prefix.'wpjb_meta meta INNER JOIN  '.$wpdb->prefix.'wpjb_meta_value meta_value ON meta.id=meta_value.meta_id WHERE meta.meta_type=3 AND meta_value.object_id = '.$params['object_id'].' ORDER BY meta_value.meta_id ASC', OBJECT );
+		if(count($order_custom_fields) > 0) {
+			$oldname = $strval = '';
+			$fieldindex = 0;
+			foreach($order_custom_fields as $single_row) {				
+				$fieldindex++;
+				if($oldname == '') $oldname = $single_row->name;
+				if($oldname != $single_row->name) {
+					$orderdetails['CustomFields'][$oldname] = substr($strval,0,-1);
+					$strval = '';
+				} 
+				if(count($order_custom_fields) == $fieldindex) {
+					$orderdetails['CustomFields'][$single_row->name] = $single_row->value;
+				}				
+				$strval .= $single_row->value.',';
+				$oldname = $single_row->name;								
+			}
+		}
+		if(isset($post['clickandpledge_listing_id']) && $post['clickandpledge_listing_id'] != '') {
+			$parts = explode('_', $post['clickandpledge_listing_id']);
+			if(count($parts) == 3) {
+				$listid = $parts[2];
+				if($listid != '') {
+					$listrow = $wpdb->get_row( 'SELECT * FROM '.$wpdb->prefix.'wpjb_pricing WHERE id = '.$listid, OBJECT );
+					if($listrow != '') {
+						$orderdetails['CustomFields']['Listing Type'] = $listrow->title;
+					}
+				}
+			}
+		}
 		if($params['object_type'] == 1) {
 			$orderplaced = $wpdb->get_row( 'SELECT * FROM '.$wpdb->prefix.'wpjb_job WHERE id = '.$params['object_id'], OBJECT );
-			$orderdetails['ItemName'] = 'Job: '.$orderplaced->job_title;			
-		} else if($params['object_type'] == 2) {
+			$orderdetails['ItemName'] = 'Job: '.$orderplaced->job_title;
+			if($orderplaced->job_description != '')
+			$orderdetails['CustomFields']['Description'] = $orderplaced->job_description;
+			if($orderplaced->job_country != '') {
+				$countries = Wpjb_List_Country::getAll();
+				if(count($countries) > 0) {
+					foreach($countries as $country) {
+						if($country['code'] == $orderplaced->job_country)
+						$orderdetails['CustomFields']['Job Country'] = $country['name'];
+					}
+				}
+				
+			}
+			if($orderplaced->job_state != '')
+			$orderdetails['CustomFields']['Job State'] = $orderplaced->job_state;
+			if($orderplaced->job_zip_code != '')
+			$orderdetails['CustomFields']['Job Zip-Code'] = $orderplaced->job_zip_code;
+			if($orderplaced->job_city != '')
+			$orderdetails['CustomFields']['Job City'] = $orderplaced->job_city;
+			if($orderplaced->company_name != '')
+			$orderdetails['CustomFields']['Company Name'] = $orderplaced->company_name;
+			if($orderplaced->company_email != '')
+			$orderdetails['CustomFields']['Contact Email'] = $orderplaced->company_email;
+			if($orderplaced->company_url != '')
+			$orderdetails['CustomFields']['Website'] = $orderplaced->company_url;		
+
+			$job = new Wpjb_Model_Job($params['object_id']);			
+			if(isset($job->getTag()->type) && is_array($job->getTag()->type)) {
+				foreach($job->getTag()->type as $type) {
+					$orderdetails['CustomFields']['Job Type'] = $type->title;
+				}
+			}			
+			if(isset($job->tag->category) && is_array($job->tag->category)) {
+				foreach($job->tag->category as $cat) {
+					$orderdetails['CustomFields']['Category'] = $cat->title;
+				}
+			}						
+			
+		} else if($params['object_type'] == 2) { //Resume
 			$orderplaced = $wpdb->get_row( 'SELECT * FROM '.$wpdb->prefix.'wpjb_resume r INNER JOIN '.$wpdb->prefix.'posts p ON r.post_id = p.id WHERE r.id = '.$params['object_id'], OBJECT );			
 			if($orderplaced) {
 				if($orderplaced->post_title != '') {
@@ -180,15 +248,15 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 			}
 			else {
 				$orderdetails['ItemName'] = 'Single Resume Access';
-			}
-		} else if($params['object_type'] == 3) {
+			}			
+		} else if($params['object_type'] == 3) { //Membership
 			$orderplaced = $wpdb->get_row( 'SELECT * FROM '.$wpdb->prefix.'wpjb_membership WHERE id = '.$params['object_id'], OBJECT );
 			if($orderplaced->package_id != '') {
 				$package = $wpdb->get_row( 'SELECT * FROM '.$wpdb->prefix.'wpjb_pricing WHERE id = '.$orderplaced->package_id, OBJECT );
 				$orderdetails['ItemName'] = 'Membership: '.$package->title;
 			} else {
 				$orderdetails['ItemName'] = 'Employer Membership Package';
-			}			
+			}						
 		}
 		$UnitPriceCalculate = $TotalDiscountCalculate = 0;		
 		
@@ -230,6 +298,22 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 //die('fffffffffff');		
 		$billingaddress=$dom->createElement('BillingAddress','');
 		$billingaddress=$cardholder->appendChild($billingaddress);			
+		
+		if(isset($orderdetails['CustomFields']) && count($orderdetails['CustomFields']) > 0) {
+			$customfieldlist = $dom->createElement('CustomFieldList','');
+			$customfieldlist = $cardholder->appendChild($customfieldlist);
+			
+			foreach($orderdetails['CustomFields'] as $key => $val) {
+				$customfield = $dom->createElement('CustomField','');
+				$customfield = $customfieldlist->appendChild($customfield);
+					
+				$fieldname = $dom->createElement('FieldName',$key);
+				$fieldname = $customfield->appendChild($fieldname);
+					
+				$fieldvalue = $dom->createElement('FieldValue',$this->safeString($val, 500));
+				$fieldvalue = $customfield->appendChild($fieldvalue);
+			}			
+		}
 		
 		$paymentmethod=$dom->createElement('PaymentMethod','');
 		$paymentmethod=$cardholder->appendChild($paymentmethod);
@@ -352,15 +436,15 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$itemid=$dom->createElement('ItemID',1);
 		$itemid=$orderitem->appendChild($itemid);
 
-		$itemname=$dom->createElement('ItemName',$this->safeString(trim($orderdetails['ItemName']), 50));
+		$itemname=$dom->createElement('ItemName',$this->safeString(trim($orderdetails['ItemName']), 100));
 		$itemname=$orderitem->appendChild($itemname);
 
 		$quntity=$dom->createElement('Quantity',1);
 		$quntity=$orderitem->appendChild($quntity);
 		$line_subtotal = $params['clickandpledge_Amount'];
-		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'on' ) {
+		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'true' ) {
 			if($params['clickandpledge_RecurringMethod'] == 'Installment') {
-				if(isset($params['clickandpledge_indefinite']) && $params['clickandpledge_indefinite'] == 'on') {
+				if(isset($params['clickandpledge_indefinite']) && $params['clickandpledge_indefinite'] == 'true') {
 				$UnitPriceDecimal = ($this->number_format(($line_subtotal/999),2,'.','')*100);
 				$UnitPriceCalculate += ($this->number_format(($line_subtotal/999),2,'.','')*1);
 				} else {
@@ -380,6 +464,26 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$unitprice=$orderitem->appendChild($unitprice);
 		$UnitPriceCalculate += ($line_subtotal*1);
 		}
+		
+		//Discount
+		if($params['clickandpledge_Discount'] > 0) {
+			$order_discount = $params['clickandpledge_Discount'];
+			if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'true' ) {
+				if($params['clickandpledge_RecurringMethod'] == 'Installment') {
+					$TotalDiscount = ($order_discount)/$params['clickandpledge_Installment'];
+					$TotalDiscount = $this->number_format($TotalDiscount, 2, '.', '')*100;
+				} else {
+					$TotalDiscount = $this->number_format($order_discount, 2, '.', '')*100;		
+				}
+			} else {
+			$TotalDiscount = $this->number_format($order_discount, 2, '.', '')*100;
+			}
+			if($TotalDiscount > 0) {		
+			$unit_disc=$dom->createElement('UnitDiscount', $TotalDiscount);
+			$unit_disc=$orderitem->appendChild($unit_disc);
+			$TotalDiscountCalculate = $TotalDiscount;
+			}
+		}	
 	
 		$receipt=$dom->createElement('Receipt','');
 		$receipt=$order->appendChild($receipt);
@@ -393,7 +497,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 			$recipt_org=$receipt->appendChild($recipt_org);
 		}		
 				
-		if( isset($params['TermsCondition']) && $params['clickandpledge_TermsCondition'] != '')
+		if( isset($params['clickandpledge_TermsCondition']) && $params['clickandpledge_TermsCondition'] != '')
 		{
 			$recipt_terms=$dom->createElement('TermsCondition',$this->safeString($params['clickandpledge_TermsCondition'], 1500));
 			$recipt_terms=$receipt->appendChild($recipt_terms);
@@ -421,11 +525,11 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$trans_desc=$transation->appendChild($trans_desc); 
 		
 		
-		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'on' )
+		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'true' )
 		{
 			$trans_recurr=$dom->createElement('Recurring','');
 			$trans_recurr=$transation->appendChild($trans_recurr);
-			if  (isset($params['clickandpledge_indefinite']) &&  $params['clickandpledge_indefinite'] == 'on' )
+			if  (isset($params['clickandpledge_indefinite']) &&  $params['clickandpledge_indefinite'] == 'true' )
 			{
 				$total_installment=$dom->createElement('Installment',999);
 				$total_installment=$trans_recurr->appendChild($total_installment);
@@ -454,27 +558,12 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		
 		$trans_totals=$dom->createElement('CurrentTotals','');
 		$trans_totals=$transation->appendChild($trans_totals);		
-		
-		if($params['clickandpledge_Discount'] > 0) {
-			$order_discount = $params['clickandpledge_Discount'];
-			if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'on' ) {
-				if($params['clickandpledge_RecurringMethod'] == 'Installment') {
-					$TotalDiscount = ($order_discount)/$params['clickandpledge_Installment'];
-					$TotalDiscount = $this->number_format($TotalDiscount, 2, '.', '')*100;
-				} else {
-					$TotalDiscount = $this->number_format($order_discount, 2, '.', '')*100;		
-				}
-			} else {
-			$TotalDiscount = $this->number_format($order_discount, 2, '.', '')*100;
-			}
-			if($TotalDiscount > 0) {		
-			$total_discount=$dom->createElement('TotalDiscount', $TotalDiscount);
+		if($TotalDiscountCalculate > 0) {
+			$total_discount=$dom->createElement('TotalDiscount',$TotalDiscountCalculate);
 			$total_discount=$trans_totals->appendChild($total_discount);
-			$TotalDiscountCalculate = $TotalDiscount;
-			}
 		}
 		
-		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'on' ) {
+		if( isset($params['clickandpledge_isRecurring']) &&  $params['clickandpledge_isRecurring'] == 'true' ) {
 			if($params['clickandpledge_RecurringMethod'] == 'Installment') {			
 			$Total = $this->number_format($UnitPriceCalculate, 2, '.', '')*100 - $TotalDiscountCalculate;			
 			$total_amount=$dom->createElement('Total', $Total);
@@ -489,11 +578,16 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$total_amount=$dom->createElement('Total',$Total);
 		$total_amount=$trans_totals->appendChild($total_amount);
 		}
-		if( $TotalDiscountCalculate > 0 ){			
-			$trans_coupon_discount=$dom->createElement('TransactionDiscount',$TotalDiscountCalculate);
-			$trans_coupon_discount=$transation->appendChild($trans_coupon_discount);			
-		}		
+		
+		if($TotalDiscountCalculate > 0) {
+			if(isset($post['clickandpledge_coupon_code']) && $post['clickandpledge_coupon_code'] != '') {
+				$trans_coupon=$dom->createElement('CouponCode',$post['clickandpledge_coupon_code']);
+				$trans_coupon=$transation->appendChild($trans_coupon);
+			}
+		}
+			
 		$strParam =$dom->saveXML();
+		//die();
 		return $strParam;
 	  }
 	  
@@ -580,9 +674,10 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 	  $id = $this->_data->id;
 	  $availableCurrencies = array();
 	  $paymentMethods = array();
-	  $merchant = $this->getMerchant();
-	  //echo '<pre>';
-	  //print_r($merchant);
+	  $merchant = $this->getMerchant(); 
+	 
+	 //echo '<pre>';
+	 //print_r($_POST);
 	  if(isset($merchant['wpjobboard_clickandpledge_usdaccount']) && $merchant['wpjobboard_clickandpledge_usdaccount'] != '')
 	  array_push($availableCurrencies, 'USD');
 	  if(isset($merchant['wpjobboard_clickandpledge_euraccount']) && $merchant['wpjobboard_clickandpledge_euraccount'] != '')
@@ -593,7 +688,6 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 	  array_push($availableCurrencies, 'GBP');
 	  if(isset($merchant['wpjobboard_clickandpledge_hkdaccount']) && $merchant['wpjobboard_clickandpledge_hkdaccount'] != '')
 	  array_push($availableCurrencies, 'HKD');
-	  
 	
 	
 	  $selectedCurrency = $this->_data->payment_currency;
@@ -620,12 +714,10 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 	  $defaultpayment = 'CreditCard';
 	  if($merchant['wpjobboard_clickandpledge_DefaultpaymentMethod'] != '')
 	  $defaultpayment = $merchant['wpjobboard_clickandpledge_DefaultpaymentMethod'];
-	  //echo '<pre>';
-	  //print_r($data);
-	  //echo 'Selected Currency:'.$this->_data->payment_currency;
-	  //wp_enqueue_script('clickandpledge');
-	  $ajaxurl = admin_url("admin-ajax.php");
-	  //'return_url'=> wpjb_link_to("step_complete", $this->_data),
+	  
+	  
+
+	  $ajaxurl = admin_url("admin-ajax.php");	
 	 
 	 wp_register_script( 'clickandpledge-plugin-script', plugins_url( '/clickandpledge.js', __FILE__ ) );
 	 wp_enqueue_script( 'clickandpledge-plugin-script' );
@@ -643,6 +735,10 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 			float: left;
 			line-height: 2em;
 		  }
+		  .form-row label.error {
+				color: red;
+				font-style: italic;
+			}
 		</style>
 <script type="text/javascript">
   var WPJB_PAYMENT_ID = '.$id.';
@@ -775,7 +871,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 				}  
 				$recurringhtml .= '</select>
 				</label>&nbsp;
-				<span id="clickandpledge_Installment_div"><input type="text" name="clickandpledge_Installment" id="clickandpledge_Installment" class="required" title="Installments" style="width:100px;"/>&nbsp;<font color="#FF0000">*</font> payments</span>
+				<span id="clickandpledge_Installment_div"><input type="text" name="clickandpledge_Installment" id="clickandpledge_Installment" class="required" title="Installments" style="width:100px;" maxlength="3"/>&nbsp;<font color="#FF0000">*</font> payments</span>
 			  </div>
 			  <script>
 				jQuery("#clickandpledge_Installment").keypress(function(e) {
@@ -807,7 +903,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 				}  
 				$recurringhtml .= '</select>
 				</label>&nbsp;
-				<span id="clickandpledge_Installment_div"><input type="text" name="clickandpledge_Installment" id="clickandpledge_Installment" class="required" title="Installments" style="width:100px;"/>&nbsp;<font color="#FF0000">*</font> payments</span>
+				<span id="clickandpledge_Installment_div"><input type="text" name="clickandpledge_Installment" id="clickandpledge_Installment" class="required" title="Installments" style="width:100px;" maxlength="3"/>&nbsp;<font color="#FF0000">*</font> payments</span>
 			  </div>
 			  <script>
 				jQuery("#clickandpledge_Installment").keypress(function(e) {
@@ -828,9 +924,9 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		 //die('333333333333');		 
 		 $clickandpledgename_CreditCard = '<div class="form-row cnp_payment_style" >
 			<label>
-			  <span>'.__("Name", "wpjobboard").'</span>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_CreditCard" id="clickandpledge_FirstName_CreditCard" class="required NameOnCard" title="First Name" placeholder="First Name"/>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_CreditCard" id="clickandpledge_LastName_CreditCard" class="required NameOnCard" title="Last Name" placeholder="Last Name"/>
+			  <span>'.__("Name&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_CreditCard" id="clickandpledge_FirstName_CreditCard" class="required NameOnCard" placeholder="First Name"/>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_CreditCard" id="clickandpledge_LastName_CreditCard" class="required NameOnCard" placeholder="Last Name"/>
 			</label>
 		  </div>
 		  <style>
@@ -845,9 +941,9 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		  ';
 		  $clickandpledgename_eCheck = '<div class="form-row cnp_payment_style" >
 			<label>
-			  <span>'.__("Name", "wpjobboard").'</span>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_eCheck" id="clickandpledge_FirstName_eCheck" class="required NameOnCard" title="First Name" placeholder="First Name"/>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_eCheck" id="clickandpledge_LastName_eCheck" class="required NameOnCard" title="Last Name" placeholder="Last Name"/>
+			  <span>'.__("Name&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_eCheck" id="clickandpledge_FirstName_eCheck" class="required NameOnCard" placeholder="First Name"/>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_eCheck" id="clickandpledge_LastName_eCheck" class="required NameOnCard" placeholder="Last Name"/>
 			</label>
 		  </div>
 		  <style>
@@ -862,9 +958,9 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		  ';
 		  $clickandpledgename_Invoice = '<div class="form-row cnp_payment_style" >
 			<label>
-			  <span>'.__("Name", "wpjobboard").'</span>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_Invoice" id="clickandpledge_FirstName_Invoice" class="required NameOnCard" title="First Name" placeholder="First Name"/>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_Invoice" id="clickandpledge_LastName_Invoice" class="required NameOnCard" title="Last Name" placeholder="Last Name"/>
+			  <span>'.__("Name&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_Invoice" id="clickandpledge_FirstName_Invoice" class="required NameOnCard"  placeholder="First Name"/>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_Invoice" id="clickandpledge_LastName_Invoice" class="required NameOnCard"  placeholder="Last Name"/>
 			</label>
 		  </div>
 		  <style>
@@ -878,9 +974,9 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		  </style> ';
 		  $clickandpledgename_PO = '<div class="form-row cnp_payment_style" >
 			<label>
-			  <span>'.__("Name", "wpjobboard").'</span>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_PO" id="clickandpledge_FirstName_PO" class="required NameOnCard" title="First Name" placeholder="First Name"/>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_PO" id="clickandpledge_LastName_PO" class="required NameOnCard" title="Last Name" placeholder="Last Name"/>
+			  <span>'.__("Name&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_FirstName_PO" id="clickandpledge_FirstName_PO" class="required NameOnCard"  placeholder="First Name"/>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_LastName_PO" id="clickandpledge_LastName_PO" class="required NameOnCard"  placeholder="Last Name"/>
 			</label>
 		  </div>
 		  <style>
@@ -897,26 +993,26 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		 $html .= $clickandpledgename_CreditCard;
 		  $html .= '<div class="form-row">
 			<label>
-			  <span>'.__("Name On Card", "wpjobboard").'</span>
-			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_nameOnCard" id="clickandpledge_nameOnCard" class="required NameOnCard" title="Name On Card" placeholder="Name On Card"/>
+			  <span>'.__("Name On Card&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_nameOnCard" id="clickandpledge_nameOnCard" class="required NameOnCard"  placeholder="Name On Card"/>
 			</label>
 		  </div>
 		  
 		  <div class="form-row">
 			<label>
-			  <span>'.__("Card Number", "wpjobboard").'</span>
+			  <span>'.__("Card Number&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
 			  <input type="text" size="20" data-clickandpledge="number" name="clickandpledge_cardNumber" id="clickandpledge_cardNumber" class="required creditcard" placeholder="Card Number"/>
 			</label>
 		  </div>
 
 		  <div class="form-row">
 			<label>
-			  <span>'.__("CVC", "wpjobboard").'</span>			  
-			  <input type="text" size="4" data-clickandpledge="cvc" maxlength="4" name="clickandpledge_cvc" id="clickandpledge_cvc" class="required Cvv2" placeholder="CVC"/>
+			  <span>'.__("CVV&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>			  
+			  <input type="text" size="4" data-clickandpledge="cvc" maxlength="4" name="clickandpledge_cvc" id="clickandpledge_cvc" class="required Cvv2" placeholder="CVV"/>
 			</label>
 		  </div>
 		  <div class="form-row">
-			<label><span>'.__("Expiration (MM/YYYY)", "wpjobboard").'</span></label>
+			<label><span>'.__("Expiration (MM/YYYY)&nbsp;<font color='red'>*</font>", "wpjobboard").'</span></label>
 			<select name="clickandpledge_cardExpMonth" id="clickandpledge_cardExpMonth" class="required">'.$this->getMonths().'</select>
 			<span> / </span>
 			<select name="clickandpledge_cardExpYear" id="clickandpledge_cardExpYear" class="required" data-clickandpledge="exp-year">'.$this->getYears().'</select>
@@ -925,36 +1021,160 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		$html .= '</div>'; //CreditCard Div End
 			
 		$eCheckdivdisplay = ($defaultpayment == 'eCheck') ? 'block' : 'none';
+		 $recurringhtml_eCheck = '';
+
+		 if(isset($merchant['wpjobboard_clickandpledge_isRecurring']) && $merchant['wpjobboard_clickandpledge_isRecurring'] == 1) {
+			if($merchant['wpjobboard_clickandpledge_RecurringLabel'] != '') {
+				$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_isRecurring_div_eCheck">
+				<label>
+				  <span>'.__($merchant['wpjobboard_clickandpledge_RecurringLabel'], "wpjobboard").'</span>
+				  <input type="checkbox" name="clickandpledge_isRecurring_eCheck" id="clickandpledge_isRecurring_eCheck"/>
+				</label>
+			  </div>';
+			} else {
+			$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_isRecurring_div_eCheck">
+				<label>
+				  <span>'.__('Is this Recurring Payment?', "wpjobboard").'</span>
+				  <input type="checkbox" name="clickandpledge_isRecurring_eCheck" id="clickandpledge_isRecurring_eCheck"/>
+				</label>
+			  </div>';
+			}
+			$RecurringMethod = array();
+			if(isset($merchant['wpjobboard_clickandpledge_RecurringMethod_Subscription']) && is_array($merchant['wpjobboard_clickandpledge_RecurringMethod_Subscription']) && count($merchant['wpjobboard_clickandpledge_RecurringMethod_Subscription']) > 0) {
+				array_push($RecurringMethod, 'Subscription');
+			}
+			if(isset($merchant['wpjobboard_clickandpledge_RecurringMethod_Installment']) && is_array($merchant['wpjobboard_clickandpledge_RecurringMethod_Installment']) && count($merchant['wpjobboard_clickandpledge_RecurringMethod_Installment']) > 0) {
+				array_push($RecurringMethod, 'Installment');
+			}
+			if(count($RecurringMethod) == 0) {
+				array_push($RecurringMethod, 'Subscription');
+				array_push($RecurringMethod, 'Installment');
+			}
+			if(count($RecurringMethod) > 0) {
+				if(count($RecurringMethod) == 1) {
+					$recurringhtml_eCheck .= '<input type="hidden" name="clickandpledge_RecurringMethod_eCheck" id="clickandpledge_RecurringMethod_eCheck" value="'.$RecurringMethod[0].'">';
+				} else {
+				$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_RecurringMethod_div_eCheck">
+				<label>
+				  <span>'.__("Recurring Method", "wpjobboard").'</span>
+				  <select id="clickandpledge_RecurringMethod_eCheck" name="clickandpledge_RecurringMethod_eCheck">';
+				foreach ($RecurringMethod as $r) {
+					$recurringhtml_eCheck .= '<option value="'.$r.'">'.$r.'</option>';
+				}  
+				$recurringhtml_eCheck .= '</select>
+				</label>
+			  </div>';
+			  }
+			} else {
+				$recurringhtml_eCheck .= '<div class="form-row" id="clickandpledge_RecurringMethod_div_eCheck">
+				<label>
+				  <span>'.__("Recurring Method", "wpjobboard").'</span>
+				  <select id="clickandpledge_RecurringMethod_eCheck" name="clickandpledge_RecurringMethod_eCheck">
+					<option value="Subscription">Subscription</option>
+					<option value="Installment">Installment</option>
+				  </select>
+				</label>
+			  </div>';
+			}
+		
+		if(isset($merchant['wpjobboard_clickandpledge_indefinite']) && is_array($merchant['wpjobboard_clickandpledge_indefinite']) && count($merchant['wpjobboard_clickandpledge_indefinite']) > 0) {
+		$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_indefinite_div_eCheck">
+			<label>
+			  <span>'.__("Indefinite Recurring", "wpjobboard").'</span>
+			  <input type="checkbox" name="clickandpledge_indefinite_eCheck" id="clickandpledge_indefinite_eCheck"/>
+			</label>
+		  </div>';	
+		}
+		
+		if(isset($merchant['wpjobboard_clickandpledge_Periodicity']) && is_array($merchant['wpjobboard_clickandpledge_Periodicity']) && count($merchant['wpjobboard_clickandpledge_Periodicity']) > 0) {
+				$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_Periodicity_div_eCheck">
+				<label>
+				  <span>'.__("Every", "wpjobboard").'</span>
+				  <select id="clickandpledge_Periodicity_eCheck" name="clickandpledge_Periodicity_eCheck">';
+				foreach ($merchant['wpjobboard_clickandpledge_Periodicity'] as $r) {
+					$recurringhtml_eCheck .= '<option value="'.$r.'">'.$r.'</option>';
+				}  
+				$recurringhtml_eCheck .= '</select>
+				</label>&nbsp;
+				<span id="clickandpledge_Installment_div_eCheck"><input type="text" name="clickandpledge_Installment_eCheck" id="clickandpledge_Installment_eCheck" class="required" title="Installments" style="width:100px;" maxlength="3"/>&nbsp;<font color="#FF0000">*</font> payments</span>
+			  </div>
+			  <script>
+				jQuery("#clickandpledge_Installment_eCheck").keypress(function(e) {
+					var a = [];
+					var k = e.which;
+
+					for (i = 48; i < 58; i++)
+						a.push(i);
+
+					if (!(a.indexOf(k)>=0))
+						e.preventDefault();
+				});
+				</script>';
+		} else {
+			$Periodicity = array();
+			$Periodicity['Week']		= 'Week';
+			$Periodicity['2 Weeks']	= '2 Weeks';
+			$Periodicity['Month']		= 'Month';
+			$Periodicity['2 Months']	= '2 Months';
+			$Periodicity['Quarter']	= 'Quarter';
+			$Periodicity['6 Months']	= '6 Months';
+			$Periodicity['Year']		= 'Year';			
+			$recurringhtml_eCheck .= '<br><div class="form-row" id="clickandpledge_Periodicity_div_eCheck">
+				<label>
+				  <span>'.__("Every", "wpjobboard").'</span>
+				  <select id="clickandpledge_Periodicity_eCheck" name="clickandpledge_Periodicity_eCheck">';
+				foreach ($Periodicity as $k => $v) {
+					$recurringhtml_eCheck .= '<option value="'.$k.'">'.$v.'</option>';
+				}  
+				$recurringhtml_eCheck .= '</select>
+				</label>&nbsp;
+				<span id="clickandpledge_Installment_div_eCheck"><input type="text" name="clickandpledge_Installment_eCheck" id="clickandpledge_Installment_eCheck" class="required" title="Installments" style="width:100px;" maxlength="3"/>&nbsp;<font color="#FF0000">*</font> payments</span>
+			  </div>
+			  <script>
+				jQuery("#clickandpledge_Installment_eCheck").keypress(function(e) {
+					var a = [];
+					var k = e.which;
+
+					for (i = 48; i < 58; i++)
+						a.push(i);
+
+					if (!(a.indexOf(k)>=0))
+						e.preventDefault();
+				});
+				</script>';
+		}		
+		
+		 }
 		$html .= '<div style="display:'.$eCheckdivdisplay.'" id="cnp_eCheck_div">';
 		$html .= $clickandpledgename_eCheck;
 		$html .= '
 		<div class="form-row">
 			<label>
-			  <span>'.__("Routing Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_RoutingNumber" id="clickandpledge_echeck_RoutingNumber" class="required RoutingNumber" title="Routing Number" placeholder="Routing Number"/>
+			  <span>'.__("Routing Number&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_RoutingNumber" id="clickandpledge_echeck_RoutingNumber" class="required RoutingNumber"  placeholder="Routing Number"/>
 			</label>
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Check Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_CheckNumber" id="clickandpledge_echeck_CheckNumber" class="required CheckNumber" title="Check Number" placeholder="Check Number"/>
+			  <span>'.__("Check Number&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_CheckNumber" id="clickandpledge_echeck_CheckNumber" class="required CheckNumber"  placeholder="Check Number"/>
 			</label>
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Account Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_AccountNumber" id="clickandpledge_echeck_AccountNumber" class="required AccountNumber" title="Account Number" placeholder="Account Number"/>
+			  <span>'.__("Account Number&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_AccountNumber" id="clickandpledge_echeck_AccountNumber" class="required AccountNumber"  placeholder="Account Number"/>
 			</label>
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Retype Account Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_retypeAccountNumber" id="clickandpledge_echeck_retypeAccountNumber" class="required AccountNumber" title="Retype Account Number" placeholder="Retype Account Number"/>
+			  <span>'.__("Retype Account Number&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_retypeAccountNumber" id="clickandpledge_echeck_retypeAccountNumber" class="required AccountNumber" placeholder="Retype Account Number"/>
 			</label>
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Account Type", "wpjobboard").'</span>
+			  <span>'.__("Account Type&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
 			  <select name="clickandpledge_echeck_AccountType" id="clickandpledge_echeck_AccountType" title="Account Type">
 					<option value="SavingsAccount">SavingsAccount</option>
 					<option value="CheckingAccount">CheckingAccount</option>
@@ -963,7 +1183,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Check Type", "wpjobboard").'</span>
+			  <span>'.__("Check Type&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
 			  <select name="clickandpledge_echeck_CheckType" id="clickandpledge_echeck_CheckType" title="Check Type">
 					<option value="Company">Company</option>
 					<option value="Personal">Personal</option>
@@ -972,13 +1192,13 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Name on Account", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_NameOnAccount" id="clickandpledge_echeck_NameOnAccount" class="required AccountNumber" title="Name on Account" placeholder="Name on Account"/>
+			  <span>'.__("Name on Account&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_echeck_NameOnAccount" id="clickandpledge_echeck_NameOnAccount" class="required AccountNumber"  placeholder="Name on Account"/>
 			</label>
 		 </div>
 		 <div class="form-row">
 			<label>
-			  <span>'.__("Type of ID", "wpjobboard").'</span>
+			  <span>'.__("Type of ID&nbsp;<font color='red'>*</font>", "wpjobboard").'</span>
 			  <select name="clickandpledge_echeck_IdType" id="clickandpledge_echeck_IdType" title="Type of ID">
 					<option value="Driver">Driver</option>
 					<option value="Military">Military</option>
@@ -986,7 +1206,7 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 			  </select>
 			</label>
 		 </div>';
-		$html .= $recurringhtml;
+		$html .= $recurringhtml_eCheck;
 		$html .= '</div>'; //eCheck Div End
 		
 		$Invoicedivdisplay = ($defaultpayment == 'Invoice') ? 'block' : 'none';
@@ -996,32 +1216,40 @@ class Payment_ClickandPledge extends Wpjb_Payment_Abstract
 		<div class="form-row">
 			<label>
 			  <span>'.__("Invoice Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_Invoice_InvoiceNumber" id="clickandpledge_Invoice_InvoiceNumber" class="InvoiceCheckNumber" title="Invoice Number" placeholder="Invoice Number"/>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_Invoice_InvoiceNumber" id="clickandpledge_Invoice_InvoiceNumber" class="InvoiceCheckNumber"  placeholder="Invoice Number"/>
 			</label>
 		 </div>';
 		$html .= '</div>'; //Invoice Div End
 		
 		$PurchaseOrderdivdisplay = ($defaultpayment == 'PurchaseOrder') ? 'block' : 'none';
-		$html .= '<div style="display:'.$Invoicedivdisplay.'" id="cnp_PurchaseOrder_div">';
+		$html .= '<div style="display:'.$PurchaseOrderdivdisplay.'" id="cnp_PurchaseOrder_div">';
 		$html .= $clickandpledgename_PO;
 		$html .= '
 		<div class="form-row">
 			<label>
 			  <span>'.__("Purchase Order Number", "wpjobboard").'</span>
-			  <input type="text" data-clickandpledge="number" name="clickandpledge_PurchaseOrder_OrderNumber" id="clickandpledge_PurchaseOrder_OrderNumber" class="PurchaseOrderNumber" title="Purchase Order Number" placeholder="Purchase Order Number"/>
+			  <input type="text" data-clickandpledge="number" name="clickandpledge_PurchaseOrder_OrderNumber" id="clickandpledge_PurchaseOrder_OrderNumber" class="PurchaseOrderNumber"  placeholder="Purchase Order Number"/>
 			</label>
 		 </div>';
 		$html .= '</div>'; //PurchaseOrder Div End
-		 
+			$listing_id = '';
+			if(isset($_POST['listing']) && $_POST['listing'] != '')
+			$listing_id = $_POST['listing'];
+			elseif(isset($_POST['listing_type']) && $_POST['listing_type'] != '')
+			$listing_id = $_POST['listing_type'];
 			$varArray = array(
 				'clickandpledge_AccountID'=>$merchant['wpjobboard_clickandpledge_'.$selectedCurrency.'_AccountID'],
 				'clickandpledge_AccountGuid'=>$merchant['wpjobboard_clickandpledge_'.$selectedCurrency.'_AccountGuid'],
 				'clickandpledge_OrderMode' => $merchant['wpjobboard_clickandpledge_'.$selectedCurrency.'_OrderMode'],
 				'clickandpledge_Amount' => $this->_data->payment_sum+$this->_data->payment_discount,
 				'clickandpledge_Discount' => $this->_data->payment_discount,
-				'clickandpledge_OrganizationInformation' => $merchant['wpjobboard_clickandpledge_OrganizationInformation'],
-				'clickandpledge_TermsCondition' => $merchant['wpjobboard_clickandpledge_TermsCondition'],
+				'clickandpledge_OrganizationInformation' => htmlspecialchars($merchant['wpjobboard_clickandpledge_OrganizationInformation']),
+				'clickandpledge_TermsCondition' => htmlspecialchars($merchant['wpjobboard_clickandpledge_TermsCondition']),
 				'clickandpledge_email_customer' => (is_array($merchant['wpjobboard_clickandpledge_emailcustomer']) && count($merchant['wpjobboard_clickandpledge_emailcustomer']) > 0) ? $merchant['wpjobboard_clickandpledge_emailcustomer'][0] : '',
+				'clickandpledge_maxrecurrings_Subscription' => $merchant['wpjobboard_clickandpledge_maxrecurrings_Subscription'],
+				'clickandpledge_maxrecurrings_Installment' => $merchant['wpjobboard_clickandpledge_maxrecurrings_Installment'],
+				'clickandpledge_listing_id' => $listing_id,
+				'clickandpledge_coupon_code' => (isset($_POST['coupon'])) ? $_POST['coupon'] : '',
 			);
 			foreach($varArray as $k=>$v)
 			{

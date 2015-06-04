@@ -221,13 +221,13 @@ var PurchaseOrderNumber_reg = /^([0-9]){1,50}$/;
         //Payment Type 'Credit Card'
         jQuery.validator.addMethod("NameOnCard", function(value, element) {
         return this.optional(element) || ( NameOnCard_reg.test(value));
-        }, "Invalid Name on card.");
+        }, "Please enter at least 2 characters");
 		jQuery.validator.addMethod("CardNumber", function(value, element) {
         return this.optional(element) || ( CardNumber_reg.test(value));
         }, "Invalid Card Number.");
         jQuery.validator.addMethod("Cvv2", function(value, element) {
         return this.optional(element) || ( Cvv2_reg.test(value));
-        }, "Invalid Cvv2.");
+        }, "Please enter 3 or 4 digits.");
         
         function checkdate() {
             var now_date = new Date();

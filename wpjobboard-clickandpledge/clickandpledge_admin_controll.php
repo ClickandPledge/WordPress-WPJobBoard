@@ -27,13 +27,13 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
 		
 		$e = $this->create("wpjobboard_clickandpledge_USD_AccountID");
         $e->setValue($this->conf("wpjobboard_clickandpledge_USD_AccountID"));
-        $e->setLabel(__("C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "Account ID" from Click & Pledge. [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
         $e = $this->create("wpjobboard_clickandpledge_USD_AccountGuid");
         $e->setValue($this->conf("wpjobboard_clickandpledge_USD_AccountGuid"));
-        $e->setLabel(__("C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "API Account GUID" from Click & Pledge [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
@@ -43,7 +43,7 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
         );
         $e = $this->create("wpjobboard_clickandpledge_USD_OrderMode", Daq_Form_Element::TYPE_SELECT);
         $e->setValue($this->conf("wpjobboard_clickandpledge_USD_OrderMode"));
-        $e->setLabel(__("API Mode", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API Mode", "wpjobboard"));
         $e->addValidator(new Daq_Validate_InArray(array_keys($this->_env)));
         foreach($this->_env as $k => $v) {
             $e->addOption($k, $k,  $v);
@@ -66,13 +66,13 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
 		
 		$e = $this->create("wpjobboard_clickandpledge_EUR_AccountID");
         $e->setValue($this->conf("wpjobboard_clickandpledge_EUR_AccountID"));
-        $e->setLabel(__("C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "Account ID" from Click & Pledge. [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
         $e = $this->create("wpjobboard_clickandpledge_EUR_AccountGuid");
         $e->setValue($this->conf("wpjobboard_clickandpledge_EUR_AccountGuid"));
-        $e->setLabel(__("C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "API Account GUID" from Click & Pledge [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
@@ -82,7 +82,7 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
         );
         $e = $this->create("wpjobboard_clickandpledge_EUR_OrderMode", Daq_Form_Element::TYPE_SELECT);
         $e->setValue($this->conf("wpjobboard_clickandpledge_EUR_OrderMode"));
-        $e->setLabel(__("API Mode", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API Mode", "wpjobboard"));
         $e->addValidator(new Daq_Validate_InArray(array_keys($this->_env)));
         foreach($this->_env as $k => $v) {
             $e->addOption($k, $k,  $v);
@@ -105,13 +105,13 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
 		
 		$e = $this->create("wpjobboard_clickandpledge_CAD_AccountID");
         $e->setValue($this->conf("wpjobboard_clickandpledge_CAD_AccountID"));
-        $e->setLabel(__("C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "Account ID" from Click & Pledge. [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
         $e = $this->create("wpjobboard_clickandpledge_CAD_AccountGuid");
         $e->setValue($this->conf("wpjobboard_clickandpledge_CAD_AccountGuid"));
-        $e->setLabel(__("C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "API Account GUID" from Click & Pledge [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
@@ -121,7 +121,7 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
         );
         $e = $this->create("wpjobboard_clickandpledge_CAD_OrderMode", Daq_Form_Element::TYPE_SELECT);
         $e->setValue($this->conf("wpjobboard_clickandpledge_CAD_OrderMode"));
-        $e->setLabel(__("API Mode", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API Mode", "wpjobboard"));
         $e->addValidator(new Daq_Validate_InArray(array_keys($this->_env)));
         foreach($this->_env as $k => $v) {
             $e->addOption($k, $k,  $v);
@@ -144,13 +144,13 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
 		
 		$e = $this->create("wpjobboard_clickandpledge_GBP_AccountID");
         $e->setValue($this->conf("wpjobboard_clickandpledge_GBP_AccountID"));
-        $e->setLabel(__("C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "Account ID" from Click & Pledge. [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
         $e = $this->create("wpjobboard_clickandpledge_GBP_AccountGuid");
         $e->setValue($this->conf("wpjobboard_clickandpledge_GBP_AccountGuid"));
-        $e->setLabel(__("C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "API Account GUID" from Click & Pledge [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
@@ -160,7 +160,7 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
         );
         $e = $this->create("wpjobboard_clickandpledge_GBP_OrderMode", Daq_Form_Element::TYPE_SELECT);
         $e->setValue($this->conf("wpjobboard_clickandpledge_GBP_OrderMode"));
-        $e->setLabel(__("API Mode", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API Mode", "wpjobboard"));
         $e->addValidator(new Daq_Validate_InArray(array_keys($this->_env)));
         foreach($this->_env as $k => $v) {
             $e->addOption($k, $k,  $v);
@@ -183,13 +183,13 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
 		
 		$e = $this->create("wpjobboard_clickandpledge_HKD_AccountID");
         $e->setValue($this->conf("wpjobboard_clickandpledge_HKD_AccountID"));
-        $e->setLabel(__("C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P Account ID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "Account ID" from Click & Pledge. [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
         $e = $this->create("wpjobboard_clickandpledge_HKD_AccountGuid");
         $e->setValue($this->conf("wpjobboard_clickandpledge_HKD_AccountGuid"));
-        $e->setLabel(__("C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C&P API Account GUID<span style='color: #ff0000;'>*</span>", "wpjobboard"));
 		$e->setHint(__('Get your "API Account GUID" from Click & Pledge [Portal > Account Info > API Information].', "wpjobboard"));
         $this->addElement($e, "clickandpledge");
 
@@ -199,7 +199,7 @@ class Config_ClickandPledge extends Wpjb_Form_Abstract_Payment
         );
         $e = $this->create("wpjobboard_clickandpledge_HKD_OrderMode", Daq_Form_Element::TYPE_SELECT);
         $e->setValue($this->conf("wpjobboard_clickandpledge_HKD_OrderMode"));
-        $e->setLabel(__("API Mode", "wpjobboard"));
+        $e->setLabel(__("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;API Mode", "wpjobboard"));
         $e->addValidator(new Daq_Validate_InArray(array_keys($this->_env)));
         foreach($this->_env as $k => $v) {
             $e->addOption($k, $k,  $v);
