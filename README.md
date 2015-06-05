@@ -6,7 +6,6 @@ The WP JobBoard Click & Pledge gateway plugin allows you to accept online paymen
 <strong>  About Click & Pledge </strong> <br>
 Click & Pledge started in May 2000. To be sure, Click & Pledge is not too good to be true. It is, however, a Company that has changed the way non-profits do business. Not only do, we deliver the most comprehensive cloud-based fundraising and management products, but we lower your risk, save you money and offer exciting new ways for organizations to run. Since 2002, Click & Pledge have served over 10,000 customers in 46 countries and we’re carefully expanding. Every day, our management and staff think about how we can make our products perform better, what new products and services our customers require and how to deliver and support them within our free strategy. We strive to offer the economics of lower cost, increased capability and easy integration. All good. All true.
 
-<strong>  Installation </strong> 
 <strong>For Installation Simply follow these steps:</strong><br>
 1. Download from github.<br/>
 2. Unzip the file.<br/>
