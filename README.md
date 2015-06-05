@@ -8,10 +8,10 @@ Click & Pledge started in May 2000. To be sure, Click & Pledge is not too good t
 
 <strong>  Installation </strong> 
 <strong>For Installation Simply follow these steps:</strong><br>
-1. Download from github.
-2. Unzip the file.
-3. Upload the "Click & Pledge WP JobBoard" folder to your WordPress plugins directory.
-4. Login to WordPress Admin, then select Plugins and activate the "Click & Pledge WP JobBoard" plugin.
-5. Within the WordPress Admin, go to Settings (WPJB) > Click & Pledge, then click on "Edit".
+1. Download from github.<br/>
+2. Unzip the file.<br/>
+3. Upload the "Click & Pledge WP JobBoard" folder to your WordPress plugins directory.<br/>
+4. Login to WordPress Admin, then select Plugins and activate the "Click & Pledge WP JobBoard" plugin.<br/>
+5. Within the WordPress Admin, go to Settings (WPJB) > Click & Pledge, then click on "Edit".<br/>
 6. Enter the proper information.
 
